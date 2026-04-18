@@ -1,23 +1,24 @@
 # Progress Workflow — 断点续传
 
-管理 `progress.md` 文件，实现跨 session 的任务接力。
+管理 `.better-work/shared/progress.md` 文件，实现跨 session 的任务接力。该文件位于 `shared/` 下，可被 better-work 系列的其他 skill 读取。
 
 ## Checkpoint（保存断点）
 
-当用户执行 `/project-memory checkpoint` 或 session 即将结束时执行。
+当用户执行 `/better-code checkpoint`（或 `/better-work code checkpoint`）或 session 即将结束时执行。
 
 ### 写入内容
 
 ```markdown
 # progress.md — 任务进度
 # 最后更新: [ISO 时间戳]
+# 维护者: better-code (本次)
 
 ## 当前任务
 [一句话描述正在做什么]
 
 ## 已完成
-- [x] [具体动作 + 涉及的文件路径]
-- [x] [具体动作 + 涉及的文件路径]
+- [x] [具体动作 + 涉及的文件路径:行号]
+- [x] [具体动作 + 涉及的文件路径:行号]
 
 ## 进行中
 - [ ] [当前正在做的事]
@@ -39,6 +40,10 @@
 - 需要参考什么文档/资料
 - 需要注意的特殊情况
 - 相关的测试怎么跑
+
+## 相关知识
+- 本任务涉及的 danger-zones 条目：[引用 code/danger-zones.md 中的文件]
+- 本任务涉及的 conventions：[引用 code/conventions.md 中的约定名]
 ```
 
 ### 质量标准
@@ -55,15 +60,21 @@
 
 如果同时有多个进行中的任务（或一个大任务的多个并行分支），用 `## 任务 1` / `## 任务 2` 分隔，每个任务独立追踪。
 
+### 与其他 skill 的协作
+
+- better-test 做测试时也可能写 progress.md（比如"正在跑 Group C 第 3 项"），格式与上述相同
+- 跨 skill 切换任务时，保留对方的条目，只添加自己的
+- 用 `## 维护者: <skill>` 标注每个任务条目的写入方
+
 ---
 
 ## Resume（从断点恢复）
 
-当用户执行 `/project-memory resume` 或新 session 开始时用户说"继续上次的"。
+当用户执行 `/better-code resume` 或新 session 开始时说"继续上次的"。
 
 ### 执行步骤
 
-1. 读取 `.project-memory/progress.md`
+1. 读取 `.better-work/shared/progress.md`
 2. 向用户汇报：
    ```
    上次进度：
@@ -72,10 +83,13 @@
    - 上次停在：[恢复上下文中的位置信息]
    - 距上次更新：[时间差]
    ```
-3. 如果距上次更新超过 7 天，提醒用户：
-   "进度记录已过 7 天。项目可能有其他变更。建议先运行 `/project-memory update` 检查项目状态。"
+3. 如果距上次更新超过 7 天，主动检查期间代码变化：
+   - 运行 `git log --oneline --since='<checkpoint-date>' -- .` 查看相关文件的改动
+   - 运行 `git diff <checkpoint-commit>..HEAD` 看整体差异
+   - 向用户汇报期间有哪些 commit / 哪些文件被改，再询问是否继续原计划
+   - 注意：此处**不**运行 `/better-code update`——update 是信号驱动的，新 session 尚无会话信号，跑了也无效
 4. 询问用户："从 [进行中的任务] 继续，还是有新的安排？"
-5. 用户确认后，读取恢复上下文中提到的文件，开始工作
+5. 用户确认后，按"恢复上下文"中提到的文件开始工作
 
 ### 冲突处理
 
@@ -94,6 +108,12 @@ Agent 检测到以下情况时，主动建议用户执行 checkpoint：
 1. 已经连续工作超过 30 分钟且有实质进展
 2. 对话长度接近 context 压缩阈值
 3. 完成了一个阶段性目标（如"所有单元测试通过"）
-4. 即将开始一个风险较高的操作（重构、删除、迁移）
+4. 即将开始风险较高的操作（重构、删除、迁移）
 
 建议话术："建议保存断点——如果接下来的操作出问题，可以从这里恢复。要我执行 checkpoint 吗？"
+
+## .gitignore 规则
+
+`shared/progress.md` 默认在 `~/.better-work/<project>/.gitignore` 中，不会被团队共享。
+
+如果团队希望协作推进同一任务，可以从 `.gitignore` 移除 `progress.md`，让它进入版本控制。此时 checkpoint 时需更谨慎避免敏感信息（比如本地路径、未公开的方案细节）。

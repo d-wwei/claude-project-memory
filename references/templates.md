@@ -1,86 +1,78 @@
 # Templates & Quality Standards
 
-每个 `.project-memory/` 文件的模板和质量标准。
+每个 `.better-work/` 文件的模板和质量标准。
+
+职责划分：
+- `shared/`（index.md / map.md / progress.md）— 纯项目知识，所有 skill 共用
+- `code/`（protocol.md / conventions.md / danger-zones.md）— 研发专用
+
+> 通用执行标准（"声称完成前核对证据"、"不要 3 次同样方法"等）不在本 skill 范围——那是 better-work 的 `protocol.md`（≤30 行），独立于学科。本 skill 的 `code/protocol.md` 只放**研发场景**的约束。
 
 ---
 
-## cognitive-protocol.md（≤ 30 行）
+## code/protocol.md（≤ 15 行）
 
-该项目的认知约束。每次对话通过 `@` 引用自动加载。**纯行为规则，不含任何项目信息。**
+研发认知约束。每次对话通过 `@` 引用自动加载。**纯行为规则，零项目信息。**
 
-可根据项目风险等级选择模板：
+选择一个匹配项目风险的版本：
 
-### 严格版（支付系统、核心基础设施等高风险项目）
+### 严格版（支付、核心基础设施、高风险项目）
 
 ```markdown
-# Cognitive Protocol
+# Code Protocol
 
-## 核心原则
-- 实事求是：不夸大、不模糊、不隐瞒。没验证过的明确标注"未验证"
-- 没有调研就没有发言权：结论基于实际调查，不基于推测
+## 改动前自检
+- 改文件前查 `.better-work/code/danger-zones.md`；如涉及，按其"检查命令"执行
+- 用到新模式前查 `.better-work/code/conventions.md`；有约定就遵守，没有就问
+- 重构前先搜索所有引用方，列出影响范围
 
-## 完成标准
-- 声称完成前：重读原始需求，逐项核对，每项附可观察证据（输出/测试结果/状态变化）
-- "改了代码"不是完成，"目标达成 + 证据"才是完成
-- "应该可以"是假设不是结论，必须实际验证
-
-## 行为触发器
-- 即将说"完成/搞定/done" → 停下，逐项核对需求，列出证据。未满足的明确列出
-- 即将说"做不到" → 先列出已尝试的方法，不足 3 种本质不同的策略则继续
-- 修改了被多处引用的文件 → 先搜索所有引用方确认影响范围
-- 任务有多个部分 → 核对是否每个部分都已交付
-- 写了"应该是/大概/一般来说" → 替换为确切信息或标注"需要验证"
-
-## 失败归因
-- 归因于环境/工具前，先用具体证据验证（日志、版本、权限）
+## 完成前自检
+- 跑一次相关测试并给出结果；无测试先写一个能复现的
+- 改了 danger-zones / conventions 相关代码 → 更新对应知识文件
+- 新引入的模式若会在项目多次出现 → 加到 `code/conventions.md`
 ```
 
 ### 标准版（日常业务项目）
 
 ```markdown
-# Cognitive Protocol
+# Code Protocol
 
-## 完成标准
-- 声称完成前逐项核对原始需求，每项附证据
-- "应该可以"是假设，需实际验证
-
-## 行为触发器
-- 说"完成" → 逐项核对 + 证据
-- 说"做不到" → 列出已试过的 3 种不同方法
-- 改高引用文件 → 先搜影响范围
-- 多部分任务 → 核对完整性
+- 改文件前查 `.better-work/code/danger-zones.md`
+- 用到新模式前查 `.better-work/code/conventions.md`
+- 完成前跑相关测试并给出结果
+- 改动影响到约定/危险区域 → 更新对应知识文件
 ```
 
 ### 宽松版（内部工具、实验项目）
 
 ```markdown
-# Cognitive Protocol
+# Code Protocol
 
-- 声称完成前核对需求完整性
-- 改核心文件前搜索影响范围
+- 改核心文件前查 danger-zones
+- 完成前跑一次相关测试
 ```
 
 ### 质量标准
 
 | 项目 | 必须满足 |
 |------|---------|
-| 总行数 | ≤ 30 行 |
-| 内容 | 纯认知规则，零项目信息 |
+| 总行数 | ≤ 15 行 |
+| 内容 | 纯研发认知规则，零项目信息 |
 | 每条规则 | 可机械检查（agent 能对照自检） |
 | 风险匹配 | 项目风险等级越高，约束越严格 |
 
 ---
 
-## index.md（≤ 150 行）
+## shared/index.md（≤ 150 行）
 
-纯项目知识入口。每次对话自动加载。**不含任何认知规则。**
+项目知识入口。每次对话自动加载。**不含任何认知规则。**
 
 ```markdown
 # [Project Name]
 
 [一句话：这是什么 + 用什么技术栈 + 怎么部署]
 
-## Module Map (简版)
+## Module Map（简版）
 [顶层目录，每个一句话职责]
 调用方向: A → B → C（不可反向）
 
@@ -106,26 +98,26 @@
 | [任务类型] | [文件路径] |
 
 ## Deep Docs
-- 完整模块地图: @.project-memory/map.md
-- 编码约定: @.project-memory/conventions.md
-- 危险区域详解: @.project-memory/danger-zones.md
-- 任务进度: @.project-memory/progress.md
+- 完整模块地图: @.better-work/shared/map.md
+- 编码约定: @.better-work/code/conventions.md
+- 危险区域详解: @.better-work/code/danger-zones.md
+- 任务进度: @.better-work/shared/progress.md
 ```
 
 ### 质量标准
 
 | 项目 | 必须满足 | 不合格示例 |
 |------|---------|-----------|
-| Module Map | 每个顶层目录都有职责说明 | 只列了目录名没有说明 |
-| Must-Know Rules | 每条是"违反了会怎样"而非"建议怎样" | "建议用 structlog" |
+| Module Map | 每个顶层目录都有职责说明 | 只列目录名没说明 |
+| Must-Know Rules | 每条是"违反会怎样"而非"建议怎样" | "建议用 structlog" |
 | Danger Zones | 每条有文件路径 + 为什么危险 | "数据库相关的要小心" |
 | Quick Locate | 每条有具体文件路径 | "在 services 目录下找" |
 
 ---
 
-## map.md
+## shared/map.md
 
-完整的模块地图，包含依赖关系和任务→文件映射。
+完整的模块地图，包含依赖关系和任务→文件映射。所有 skill 均可读取。
 
 ```markdown
 # Module Map
@@ -166,11 +158,13 @@
 
 ---
 
-## conventions.md
+## code/conventions.md
 
 编码约定，用"正确/错误对比对"表达。
 
-```markdown
+模板（外层用 4 反引号避免与内层代码块冲突）：
+
+````markdown
 # Coding Conventions
 
 ## [约定类别 1：错误处理]
@@ -192,7 +186,7 @@
 
 ## [约定类别 2：数据库访问]
 [同样格式]
-```
+````
 
 ### 质量标准
 
@@ -205,9 +199,9 @@
 
 ---
 
-## danger-zones.md
+## code/danger-zones.md
 
-高风险区域详解。每个条目必须是可操作的。
+高风险区域详解。每个条目必须可操作。
 
 ```markdown
 # Danger Zones
@@ -236,6 +230,6 @@
 
 ---
 
-## progress.md
+## shared/progress.md
 
 见 `references/progress-workflow.md` 中的模板和质量标准。
