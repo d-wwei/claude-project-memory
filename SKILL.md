@@ -1,6 +1,6 @@
 ---
-name: claude-project-memory
-description: "项目记忆系统：为代码库构建持久化的项目知识，支持多 agent 平台、团队共享和断点续传。触发场景：首次进入大型项目、完成多文件任务后、需要从上次中断处继续、切换 agent 平台时。"
+name: better-code
+description: "研发知识管理：为代码库构建持久化的项目知识和研发认知约束，支持多 agent 平台、团队共享和断点续传。Better-Work 系列子技能。触发场景：首次进入大型项目、完成多文件任务后、需要从上次中断处继续。独立命令 /better-code，或作为子技能 /better-work code。"
 ---
 
 # Project Memory
