@@ -63,16 +63,26 @@ git log --since="3 months ago" --grep="fix\|bug\|hotfix" --name-only --pretty=fo
 
 按以下顺序生成各文件（参考 `references/templates.md` 的质量标准）：
 
-1. `index.md` — 从 Step 1 分类结果 + Step 2 关键发现中提炼摘要
-2. `map.md` — 从信号源 B 的依赖图 + 信号源 A 的改动集构建
-3. `conventions.md` — 从信号源 D 的采样阅读中提取
-4. `danger-zones.md` — 从信号源 B 的高入度模块 + 信号源 A 的 bug 热点构建
-5. `progress.md` — 初始化为空模板
+1. `index.md` — 纯项目知识，从 Step 1 分类结果 + Step 2 关键发现中提炼
+2. `cognitive-protocol.md` — 认知约束，根据项目风险等级选择模板（严格/标准/宽松），询问用户选择
+3. `map.md` — 从信号源 B 的依赖图 + 信号源 A 的改动集构建
+4. `conventions.md` — 从信号源 D 的采样阅读中提取
+5. `danger-zones.md` — 从信号源 B 的高入度模块 + 信号源 A 的 bug 热点构建
+6. `progress.md` — 初始化为空模板
+
+**风险等级选择指引**：
+- **严格版**：涉及资金、用户数据、核心基础设施的项目
+- **标准版**：日常业务项目、中等规模的功能开发
+- **宽松版**：内部工具、实验项目、原型开发
 
 ## Step 4: 注入到当前平台
 
-检测当前 agent 平台，生成对应 adapter 并注入：
-- Claude Code → 检查项目 CLAUDE.md 是否存在，追加 `@.project-memory/index.md`
+检测当前 agent 平台，生成对应 adapter 并注入**两个文件**：
+- Claude Code → 在项目 CLAUDE.md 中追加：
+  ```
+  @.project-memory/index.md
+  @.project-memory/cognitive-protocol.md
+  ```
 - 其他平台 → 参考 `references/adapters.md`
 
 ## Step 5: 报告

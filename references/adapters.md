@@ -22,14 +22,16 @@
 # 由 project-memory skill 管理
 
 @.project-memory/index.md
+@.project-memory/cognitive-protocol.md
 ```
 
 ### 注入步骤
 
 1. 检查项目根目录是否有 `CLAUDE.md`
-2. 如果有 → 检查是否已包含 `@.project-memory/index.md`
-3. 如果没有引用 → 追加 `@.project-memory/index.md` 到文件末尾
-4. 如果不存在 CLAUDE.md → 创建，内容为 `@.project-memory/index.md`
+2. 如果有 → 检查是否已包含两个 `@` 引用
+3. 如果缺少引用 → 追加缺少的引用到文件末尾
+4. 如果不存在 CLAUDE.md → 创建，内容为两行 `@` 引用
+5. 注意：不要覆盖 CLAUDE.md 中已有的其他内容（用户可能有自定义规则）
 
 ### 深度文档加载
 

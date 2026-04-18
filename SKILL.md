@@ -23,28 +23,42 @@ description: "项目记忆系统：为代码库构建持久化的项目知识，
 ## Output Structure
 
 ```
-.project-memory/                ← 项目根目录，git 追踪，团队共享
-├── index.md                    ← 入口摘要（≤150 行），每次对话加载
-├── map.md                      ← 模块地图 + 任务→文件映射 + 依赖方向
-├── conventions.md              ← 编码约定（正确/错误对比对 + 为什么）
-├── danger-zones.md             ← 高风险区域（入度、影响范围、检查命令）
-├── progress.md                 ← 当前任务进度（断点续传）
-└── adapters/                   ← 平台注入配置（自动生成）
+.project-memory/                      ← 项目根目录，git 追踪，团队共享
+├── index.md                          ← 项目知识入口（≤150 行），每次对话加载
+├── cognitive-protocol.md             ← 该项目的认知约束（≤30 行），每次对话加载
+├── map.md                            ← 模块地图 + 任务→文件映射 + 依赖方向
+├── conventions.md                    ← 编码约定（正确/错误对比对 + 为什么）
+├── danger-zones.md                   ← 高风险区域（入度、影响范围、检查命令）
+├── progress.md                       ← 当前任务进度（断点续传）
+└── adapters/                         ← 平台注入配置（自动生成）
     ├── claude.md
     ├── cursor.md
     └── gemini.md
 ```
 
+**双文件注入**（以 Claude Code 为例）：
+```
+<project>/CLAUDE.md:
+  @.project-memory/index.md                 ← Context: 项目知识
+  @.project-memory/cognitive-protocol.md    ← Control: 认知约束
+```
+
+两个文件职责严格分离：
+- `index.md` — 纯项目知识（架构、约定、危险区域），不含任何认知规则
+- `cognitive-protocol.md` — 纯认知约束（自检规则、触发器），不含项目信息。可按项目风险等级调整严格程度
+
 ## Red Lines
 
 1. `index.md` 超过 150 行 → 必须将内容分流到其他文件，不可突破
-2. 写入任何事实性声明时没有附带源文件路径或 `[未验证]` 标签 → 违规
-3. `init` 时详细阅读（全文 read）超过 30 个文件 → 过深，改用签名/结构扫描
-4. 生成内容与项目 README 重复 → 违规，删除重复部分
-5. `update` 写入推测性内容但不标注 `[未验证]` → 违规
-6. `danger-zones.md` 条目缺少影响范围（哪些模块会受影响）或检查命令 → 不完整，补全后再写入
-7. `init` 未判断项目类型就开始探索 → 违规，先分类再探索
-8. `progress.md` 中记录无法被下一个 session 理解的模糊状态（如"快完成了"） → 违规，必须写具体到文件和函数级别
+2. `cognitive-protocol.md` 超过 30 行 → 过长，精简或拆分
+3. `index.md` 中出现认知规则，或 `cognitive-protocol.md` 中出现项目信息 → 职责混淆，移到正确文件
+4. 写入任何事实性声明时没有附带源文件路径或 `[未验证]` 标签 → 违规
+5. `init` 时详细阅读（全文 read）超过 30 个文件 → 过深，改用签名/结构扫描
+6. 生成内容与项目 README 重复 → 违规，删除重复部分
+7. `update` 写入推测性内容但不标注 `[未验证]` → 违规
+8. `danger-zones.md` 条目缺少影响范围（哪些模块会受影响）或检查命令 → 不完整，补全后再写入
+9. `init` 未判断项目类型就开始探索 → 违规，先分类再探索
+10. `progress.md` 中记录无法被下一个 session 理解的模糊状态（如"快完成了"） → 违规，必须写具体到文件和函数级别
 
 ## Acceptance Criteria
 
