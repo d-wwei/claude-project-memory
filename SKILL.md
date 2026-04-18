@@ -1,249 +1,64 @@
 ---
 name: claude-project-memory
-description: "探索项目并生成/更新项目级 CLAUDE.md，把隐性知识显式化。"
+description: "项目记忆系统：为代码库构建持久化的项目知识，支持多 agent 平台、团队共享和断点续传。触发场景：首次进入大型项目、完成多文件任务后、需要从上次中断处继续、切换 agent 平台时。"
 ---
 
 # Project Memory
 
-探索项目代码库，生成和维护项目级 CLAUDE.md，让 agent 在大项目中拥有持久的项目知识。
+为大型代码库（10k+ 行）构建和维护平台无关的项目记忆系统。
 
-**核心理念**: 在大项目（10k+ 行）中，agent 的瓶颈不是"不够认真"而是"不知道"。这个 skill 把每次探索和迭代中获得的项目知识沉淀到 CLAUDE.md 中，下次对话直接可用。
+## Stance
 
-**命令**:
-- `/project-memory init` — 首次探索项目，生成初始 CLAUDE.md
-- `/project-memory update` — 基于本次会话的工作，增量更新 CLAUDE.md
-- `/project-memory learn <topic>` — 深入调研某个主题并记录到 CLAUDE.md
+像一个资深工程师在做入职交接——只讲能防止犯错的关键信息，用具体文件路径和代码示例而非泛泛描述。宁可漏掉不重要的，也不写没验证的。
 
----
+## Commands
 
-## 1. Init（首次探索）
+- `/project-memory init` — 首次探索项目，生成 `.project-memory/` 知识库
+- `/project-memory update` — 基于本次会话的信号，增量更新知识库
+- `/project-memory checkpoint` — 保存当前任务进度，供下次会话恢复
+- `/project-memory resume` — 从上次断点恢复，汇报进度并继续
+- `/project-memory learn <topic>` — 深入调研某个子系统并记录
+- `/project-memory inject <platform>` — 为指定平台生成注入配置
 
-当用户执行 `/project-memory init` 或 agent 发现当前项目没有 CLAUDE.md 时执行。
-
-**目标**: 用最少的时间建立对项目的"大局观"，生成一份能让未来的 agent 快速上手的 CLAUDE.md。
-
-### 1.1 探索步骤（按顺序执行）
-
-**Step 1: 确定项目根目录和基本信息**
-- 找到 git 根目录
-- 读取已有的 README.md、CONTRIBUTING.md、Makefile、package.json、pyproject.toml 等
-- 识别语言、框架、包管理器
-
-**Step 2: 目录结构扫描**
-- 用 `find . -type f -name "*.py" -o -name "*.ts" -o -name "*.go" | head -200` 获取文件列表
-- 用 `find . -type d -maxdepth 3` 获取目录树
-- 识别分层模式: 是否有 api/service/repository/model 这样的分层？
-- 识别模块边界: 顶层目录各自负责什么？
-
-**Step 3: 入口点和核心流程**
-- 找到入口点: main.py、app.py、index.ts、cmd/main.go 等
-- 追踪一个核心流程（如：一个 API 请求从进入到返回经过哪些层）
-- 记录调用链: 入口 → 路由 → handler → service → repository → model
-
-**Step 4: 配置和基础设施**
-- 找配置文件: .env.example、config.py、settings 目录
-- 找 Docker/K8s 配置: Dockerfile、docker-compose.yml、k8s/
-- 找 CI 配置: .github/workflows、.gitlab-ci.yml、Jenkinsfile
-
-**Step 5: 测试结构**
-- 找测试目录和测试命令
-- 尝试运行测试（先问用户是否允许）: `make test`、`npm test`、`pytest` 等
-- 记录: 测试框架、怎么跑、大概要多久
-
-**Step 6: 依赖关系和高引用文件**
-- 找被最多文件 import 的模块（这些是改动高风险区域）
-  ```bash
-  # Python 示例
-  grep -rh "^from \|^import " src/ | sort | uniq -c | sort -rn | head -20
-  ```
-- 找最大的文件（通常是核心逻辑所在）
-  ```bash
-  find src/ -name "*.py" -exec wc -l {} \; | sort -rn | head -20
-  ```
-
-**Step 7: 发现项目约定**
-- 读 3-5 个不同模块的代码，提取共同模式:
-  - 错误处理方式（自定义异常？错误码？）
-  - 日志方式（什么库？什么格式？）
-  - 数据库访问方式（ORM？raw SQL？query builder？）
-  - 测试写法（用什么 fixture？mock 方式？）
-
-### 1.2 生成 CLAUDE.md（分层结构）
-
-大型项目（10k+ 行）必须采用分层结构，避免 CLAUDE.md 本身过大导致注意力稀释。
-
-**核心原则: CLAUDE.md 控制在 100-150 行以内。详细内容放到 @引用文件中按需加载。**
+## Output Structure
 
 ```
-CLAUDE.md                          ← 每次对话自动加载（精简速查表）
-├── @.claude/docs/architecture.md  ← 按需加载（改架构时才读）
-├── @.claude/docs/auth.md          ← 按需加载（改认证时才读）
-├── @.claude/docs/database.md      ← 按需加载（改 DB 时才读）
-├── @.claude/docs/testing.md       ← 按需加载（写测试时才读）
-└── @.claude/docs/patterns.md      ← 按需加载（写新功能时才读）
+.project-memory/                ← 项目根目录，git 追踪，团队共享
+├── index.md                    ← 入口摘要（≤150 行），每次对话加载
+├── map.md                      ← 模块地图 + 任务→文件映射 + 依赖方向
+├── conventions.md              ← 编码约定（正确/错误对比对 + 为什么）
+├── danger-zones.md             ← 高风险区域（入度、影响范围、检查命令）
+├── progress.md                 ← 当前任务进度（断点续传）
+└── adapters/                   ← 平台注入配置（自动生成）
+    ├── claude.md
+    ├── cursor.md
+    └── gemini.md
 ```
 
-**什么放 CLAUDE.md，什么放 @引用文件**：
+## Red Lines
 
-| 放在 CLAUDE.md | 放在 @引用文件 | 不需要写 |
-|---|---|---|
-| 架构一句话概述 | 详细模块关系和流程图 | README 已有的内容 |
-| 前 5 条最重要约定 | 每个模块的完整约定 | 显而易见的东西 |
-| 测试命令 | 测试策略和基础设施详解 | 每个函数的说明 |
-| 危险文件列表 | 每个危险区域的详细原因 | git log 能查到的 |
-| 常用搜索模式 | 完整依赖图 | 临时性任务上下文 |
+1. `index.md` 超过 150 行 → 必须将内容分流到其他文件，不可突破
+2. 写入任何事实性声明时没有附带源文件路径或 `[未验证]` 标签 → 违规
+3. `init` 时详细阅读（全文 read）超过 30 个文件 → 过深，改用签名/结构扫描
+4. 生成内容与项目 README 重复 → 违规，删除重复部分
+5. `update` 写入推测性内容但不标注 `[未验证]` → 违规
+6. `danger-zones.md` 条目缺少影响范围（哪些模块会受影响）或检查命令 → 不完整，补全后再写入
+7. `init` 未判断项目类型就开始探索 → 违规，先分类再探索
+8. `progress.md` 中记录无法被下一个 session 理解的模糊状态（如"快完成了"） → 违规，必须写具体到文件和函数级别
 
-**判断标准: 这条信息是不是每次对话都需要？** 是→CLAUDE.md，特定场景需要→@引用，不需要→不写。
+## Acceptance Criteria
 
-**CLAUDE.md 模板**（精简版，适合大项目）:
+1. 新对话加载 `index.md` 后，agent 定位目标文件的搜索次数 ≤ 2（对比无记忆时 5+）
+2. `danger-zones.md` 中列出的每个条目，均可通过其"检查命令"验证影响范围
+3. `checkpoint` + `resume` 后，agent 能准确复述上次进度且无遗漏
+4. 同一套 `.project-memory/` 文件通过不同 adapter 注入后，在 Claude Code、Cursor、Gemini CLI 上均可被 agent 正确读取
 
-```markdown
-# [Project Name]
+## References
 
-## Architecture
-[一句话: 技术栈 + 部署方式]
-[目录结构 + 每个顶层目录一句话职责]
-调用方向: [A → B → C, 不允许反向调用]
-
-## Must-Know Rules (top 5)
-1. [最重要的约定，违反会导致严重问题]
-2. [第二重要...]
-3. ...
-
-## Testing
-[改完必跑的命令]
-[涉及 X 时额外跑的命令]
-
-## Danger Zones
-[高风险文件列表，每个一句话说明为什么危险]
-
-## Gotchas
-[踩过的坑，每条一行]
-
-## Useful Searches
-[3-5 个最常用的搜索模式]
-
-## Deep Docs (read on demand)
-- 详细架构和核心流程: @.claude/docs/architecture.md
-- 认证授权体系: @.claude/docs/auth.md
-- 数据库模式和迁移: @.claude/docs/database.md
-- 测试策略详解: @.claude/docs/testing.md
-- 编码约定和模式: @.claude/docs/patterns.md
-```
-
-**@引用文件模板**（每个文件 100-300 行，深入单个主题）:
-
-```markdown
-# [Topic] — Deep Doc
-
-## Overview
-[这个子系统/领域做什么，2-3 句]
-
-## Key Files
-[关键文件路径 + 各自职责]
-
-## Core Flow
-[追踪一个典型流程经过的完整路径]
-
-## Patterns
-[这个领域特有的编码约定]
-
-## Pitfalls
-[这个领域容易犯的错]
-
-## Related
-[跟哪些其他模块有交互，改这里时需要同时检查什么]
-```
-
-### 1.3 重要原则
-
-- **只写确认过的信息**。如果没有实际读代码验证，标注"[未验证]"
-- **引用具体文件路径**。不要写"在 service 层"，写"在 `src/services/order_service.py:45`"
-- **宁少勿多**。CLAUDE.md 总量控制在 100-150 行。超出就拆分到 @引用文件
-- **不要重复 README**。README 是给人看的，CLAUDE.md 是给 agent 看的。侧重点不同
-- **定期精简**。如果某条信息连续 5 次对话都没被用到，考虑移除或降级到 @引用
-
----
-
-## 2. Update（增量更新）
-
-当用户执行 `/project-memory update` 或 agent 完成一个较大的任务后执行。
-
-**目标**: 把本次会话中获得的新知识沉淀到 CLAUDE.md，避免下次重复探索。
-
-### 2.1 回顾本次会话
-
-回顾当前对话中的所有操作，提取以下类型的新知识：
-
-**类型 A: 新发现的模块关系**
-- "原来 X 模块依赖 Y 模块，改 Y 的接口会影响 X"
-- "Z 文件是被 20+ 处引用的核心模块"
-
-**类型 B: 踩过的坑**
-- "直接改 order.status 会绕过状态机"
-- "这个测试需要先启动 Redis"
-- "config 里的 X 选项名字有误导性，实际含义是 Y"
-
-**类型 C: 发现的项目约定**
-- "所有 API 返回值都套一层 `{"code": 0, "data": {...}}` 格式"
-- "数据库字段命名用 snake_case，API 字段用 camelCase"
-
-**类型 D: 有用的搜索模式**
-- "找所有发送通知的代码: `grep -r 'send_notification\|notify' src/`"
-
-**类型 E: 新增/修改的功能**
-- "新增了 X 功能，入口在 Y 文件"
-- "重构了 Z 模块，原来的 A 方法改名为 B"
-
-### 2.2 更新规则
-
-1. 读取现有 CLAUDE.md
-2. 对每条新知识:
-   - 如果已有类似内容 → 更新/补充
-   - 如果是新内容 → 添加到对应 section
-   - 如果与已有内容矛盾 → 替换旧内容（项目在演进，旧信息可能过时）
-3. 写入更新后的 CLAUDE.md
-4. 向用户报告更新了什么
-
-### 2.3 不要更新的内容
-
-- 本次任务的具体细节（"我修了一个 bug"——这是 git log 的事）
-- 临时性信息（"当前正在做 X 功能"）
-- 推测性结论（"这个模块可能有性能问题"——除非你验证了）
-
----
-
-## 3. Learn（深入调研）
-
-当用户执行 `/project-memory learn <topic>` 时执行。
-
-**目标**: 深入调研项目的某个特定方面，并将结论记录到 CLAUDE.md。
-
-**示例**:
-- `/project-memory learn auth` — 调研认证/授权机制
-- `/project-memory learn database` — 调研数据库访问模式、迁移方式
-- `/project-memory learn deployment` — 调研部署流程
-- `/project-memory learn testing` — 调研测试策略和基础设施
-
-### 3.1 调研步骤
-
-1. 围绕 topic 搜索相关文件
-2. 读取核心文件，理解实现方式
-3. 追踪关键流程（如 auth: 从请求进入 → token 验证 → 权限检查 → 通过/拒绝）
-4. 记录发现的模式、约定、注意事项
-5. 更新 CLAUDE.md 的对应 section
-
-### 3.2 输出格式
-
-调研结果直接更新到 CLAUDE.md 中，以新的 subsection 形式添加。如果内容较多，可以创建单独的 `.claude/docs/<topic>.md` 文件，在 CLAUDE.md 中用 `@` 引用。
-
----
-
-## 触发建议
-
-以下场景建议 agent 主动提议执行 update：
-
-1. **完成了涉及 3+ 文件的修改后** — "我在这次修改中发现了一些项目模式，要更新 CLAUDE.md 吗？"
-2. **踩了一个花了 10+ 分钟才搞清楚的坑** — 这类知识最值得记录
-3. **发现 CLAUDE.md 中的信息已过时** — 直接修正
-4. **首次进入一个没有 CLAUDE.md 的项目** — 提议执行 init
+| File | Load When | Content |
+|------|-----------|---------|
+| `references/init-workflow.md` | `/project-memory init` | 完整探索流程（项目分类 + 信号驱动探索） |
+| `references/update-workflow.md` | `/project-memory update` | 信号检测 + 增量更新逻辑 |
+| `references/progress-workflow.md` | `/project-memory checkpoint` 或 `resume` | 断点续传机制 |
+| `references/templates.md` | 生成输出文件时 | 各文件的模板 + 质量标准 |
+| `references/adapters.md` | `/project-memory inject` | 多平台注入方法 |
