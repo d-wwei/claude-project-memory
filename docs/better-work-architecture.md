@@ -1,6 +1,6 @@
 # Better-Work 系列架构设计文档
 
-> 版本: v1.0 | 日期: 2026-04-18 | 状态: 设计完成，待实现
+> 版本: v1.1 | 日期: 2026-04-18 | 状态: v1.0 已实现 / v1.1 扩展吸收
 
 ## 1. 愿景
 
@@ -76,7 +76,14 @@ Better-Work 是一套 AI agent 技能系列，核心理念是 **Context, Not Con
 │   ├── protocol.md                          ← 测试认知约束（≤15 行）
 │   ├── test-groups.md                       ← 测试组定义（知识）
 │   ├── impact-map.md                        ← 变更→测试映射（知识）
-│   └── known-issues.md                      ← 已知问题（知识）
+│   ├── known-issues.md                      ← 已知问题（知识）
+│   ├── status.md                            ← 测试状态自动汇总（v1.1 新增）
+│   ├── history/                             ← 测试运行历史（v1.1 新增，git-tracked）
+│   │   ├── _meta.json                       ← 元信息
+│   │   ├── feedback-rules.json              ← 反馈规则（自动维护，勿手编）
+│   │   └── <version>/                       ← 每次测试结果快照
+│   └── feedback/                            ← 开发者反馈 markdown（v1.1 新增）
+│       └── <test_id>_<verdict>.md           ← 反馈条目
 ├── plan/                                    ← 策划专用（结构类似）
 ├── design/                                  ← 设计专用（结构类似）
 ├── write/                                   ← 写作专用（结构类似）
@@ -106,6 +113,8 @@ Better-Work 是一套 AI agent 技能系列，核心理念是 **Context, Not Con
 ```
 
 通用执行标准 `protocol.md` 默认注入**全局** `~/.claude/CLAUDE.md`（所有项目生效），用户可选择注入到项目级。
+
+**v1.1 实现澄清**（from Fork 3 commit 4505c35）：`/better-work init` 默认自动注入 `protocol.md`；用户可通过 `--skip-protocol` 显式 opt-out（例如已装全局 cognitive-kernel 想避免规则重叠的场景）。
 
 ### 5.2 什么时候加载什么
 
@@ -161,9 +170,45 @@ Better-Work 是一套 AI agent 技能系列，核心理念是 **Context, Not Con
 ```
 /better-test init                  探索测试结构 → 生成 test/ 知识文件
 /better-test update                更新测试知识
+/better-test checkpoint            保存当前任务进度（接口契约，v1.1 补齐）
+/better-test resume                从断点恢复（接口契约，v1.1 补齐）
 /better-test strategy              分析变更 → 推荐测试策略
-/better-test feedback <id> <verdict>  记录测试反馈
+/better-test feedback <id> <verdict>  记录测试反馈（6 verdicts，见 §8.4）
 ```
+
+### 6.4 Series Routing 实现机制（v1.1 新增）
+
+v1.0 §6.1 定义了 `/better-work code <cmd>` 这种路由形式；v1.1 基于 Claude Code 的 slash command 文件分发机制落地实现（from Fork 3 commit 4505c35）。
+
+**两种入口模式共存：**
+
+| 模式 | 形式 | 解析 |
+|------|------|------|
+| Mode A（Dispatcher） | `/better-work <subcommand> [task]` | 命令文件 `commands/better-work.md`，`$ARGUMENTS` 首词作 subcommand |
+| Mode B（Direct Alias） | `/better-work-<subcommand> [task]` | 命令文件 `commands/better-work-<subcommand>.md`，薄 shim 转发 |
+
+Mode B 对 `code` / `test` 路由更直接：shim 文件是最小委派，不假设子技能内部行为。
+
+**接口契约（路由器要求每个子技能必备的标准命令）：**
+
+| 命令 | 职责 |
+|------|------|
+| `init` | 首次建立该学科的知识 |
+| `update` | 信号驱动的增量更新 |
+| `checkpoint` | 保存当前任务进度 |
+| `resume` | 从断点恢复 |
+
+子技能 **MAY** 暴露额外命令（如 `/better-code learn`、`/better-test strategy`、`/better-test feedback`）。路由器不检查也不审计这些——只转发。
+
+**禁止回退执行（no fallback execution）：**
+
+若用户调用 `/better-work-code init` 但 `better-code` 未安装，路由 shim 报告安装指引，**不尝试**从记忆重建 better-code 的工作流。这是 `routing.md` 明确的契约（防止路由器偷偷替子技能"代劳"导致行为分歧）。
+
+**路由实现文件**（from Fork 3 commit 4505c35）：
+
+- `skills/better-work/references/routing.md` — 路由契约文档
+- `commands/better-work-code.md`、`commands/better-work-test.md` — 路由 shim（薄委派）
+- `commands/better-work-init.md`、`commands/better-work-status.md` — 长格式系列入口命令
 
 ## 7. 独立安装 vs 完整安装
 
@@ -244,6 +289,35 @@ Better-Work 是一套 AI agent 技能系列，核心理念是 **Context, Not Con
 
 init 时询问用户选择。可以后续随时切换。
 
+### 8.4 测试知识的版本化与反馈机制（v1.1 新增）
+
+better-test 承接了 futu-tester 的 `lib/history.sh` / `lib/context.sh` 能力，引入额外的版本化与反馈维度（from Fork 2 commit 62d743a）。
+
+**history/ 目录**（git-tracked）：
+
+| 文件 / 目录 | 作用 |
+|-------------|------|
+| `history/_meta.json` | 版本元信息 |
+| `history/feedback-rules.json` | 反馈规则，**自动维护，勿手编** |
+| `history/<version>/` | 每次测试运行的独立结果快照 |
+
+**feedback 6 种 verdict 及其规则映射：**
+
+| verdict | 写入位置 | 语义 |
+|---------|---------|------|
+| `not-a-bug` | `feedback-rules.json` → `suppress` | 预期行为，永久排除 active failures |
+| `wontfix` | `feedback-rules.json` → `suppress` | 开发者明确不修，永久排除 |
+| `fixed` | 不写 suppress | 等下次跑通过验证；自动从 active fail 移除 |
+| `fixed-differently` | `feedback-rules.json` → `known_behaviors` + 提示更新 `test-groups.md` 断言 | 改动不在 fix 本身而在测试逻辑 |
+| `deferred` | `feedback-rules.json` → `known_behaviors` | 仍算 fail 但提示"已知，推迟修复" |
+| `revoke` | 清除之前对该 `test_id` 的任何 feedback 记录 | 撤销误操作 |
+
+**status.md 自动汇总：**
+
+`test/status.md` 由 `/better-test strategy`、`/better-test update`、`/better-test feedback` 三个工作流在执行末尾 refresh。内容包括当前版本、active failures、suppressed items、known behaviors、上次运行时间等。
+
+**架构扩展说明：** `history/` / `status.md` / `feedback/` 不在 v1.0 §4.2 的目录清单中，是 Phase 1 实现时为承接 futu-tester 能力而扩展的。v1.1 正式收录。
+
 ## 9. 跨 skill 信息流
 
 ```
@@ -277,6 +351,23 @@ better-code 读取 known-issues.md → 知道什么在挂 → 修复
 - 跨 skill 信息流的自动化
 - 多平台 adapter 完善
 
+### 10.4 v1.2 规划（Phase G 执行中）
+
+Phase G（吸收 cognitive-kernel + results-driven 约束到 better-work-skill）正在并行执行（Fork 4）。完成后发架构文档 v1.2。
+
+**计划内容：**
+
+- `skills/better-work/SKILL.md` 新增 **Cognitive Layer** 章节（按需加载）：
+  - § Output Protocol — `proposing_solution` / `proposing_change` / `claiming_done` 的字段模板
+  - § Behavior Triggers — 8 条 IF/THEN（基线 5 条 + results-driven 3 条）
+  - § Adversarial Review — 自动/建议触发条件 + spawn 子 agent 指令 + 审查 brief 模板
+- `skills/better-work/protocol.md` 重写（always-on，≤30 行）：
+  - Operating Standards 精华（4 条压缩）
+  - Cognitive Rules 5 条（claiming done 核对 / 简路径审问 / should-work 验证 / 事实标注 / 模糊措辞检测）
+- 不新建 `subskills/cognitive-kernel.md` 和 `subskills/results-driven.md`——全部合并进 SKILL.md，减少文件结构复杂度
+
+Phase G 完成后，此段会被 v1.2 的实际实现记录替换。
+
 ## 11. 设计决策记录
 
 | 决策 | 选择 | 理由 |
@@ -289,3 +380,28 @@ better-code 读取 known-issues.md → 知道什么在挂 → 修复
 | 学科目录结构 | protocol.md（约束）+ 知识文件 | 约束始终注入，知识按需读取 |
 | shared/ 维护权限 | 所有 skill 可读写 | 知识是共同积累的，不应有单一 owner |
 | shared/ 冲突处理 | git worktree + merge | 版本管理是解决多方写入的成熟方案 |
+
+## 12. 变更日志
+
+### v1.0 → v1.1（2026-04-18）
+
+**扩展吸收来源：** Phase 1 实现的三个并行 fork 交付物。
+
+| 变更 | 章节 | 来源 |
+|------|------|------|
+| test/ 目录增加 `status.md` / `history/` / `feedback/` | §4.2 | Fork 2 commit 62d743a（better-test） |
+| `/better-test` 命令表补齐 `checkpoint` / `resume` | §6.3 | Fork 2 commit 62d743a（接口契约） |
+| 新增 §6.4 Series Routing 实现机制 | §6.4 | Fork 3 commit 4505c35（better-work） |
+| 新增 §8.4 测试知识版本化与反馈机制（6 verdicts） | §8.4 | Fork 2 commit 62d743a |
+| §5.1 补充 `protocol.md` 默认注入 + opt-out 说明 | §5.1 | Fork 3 commit 4505c35 |
+
+**v1.2 预告（Phase G 执行中）：**
+
+- SKILL.md 新增 Cognitive Layer 章节（from Fork 4，执行中）
+- protocol.md 重写为 Operating Standards 精华 + Cognitive Rules 5 条
+- 详见 §10.4
+
+**未变更：**
+
+- §2 设计原则 / §10 Phase 2-3 长期规划 / §11 v1.0 设计决策记录 — 全部保持不动
+- 接口契约（init/update/checkpoint/resume）— v1.1 显式化，契约本身即 v1.0 设计意图
