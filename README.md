@@ -14,7 +14,7 @@ Here are the five ways AI coding agents actually fail on 100k-line codebases:
 
 All five are **information problems**, not attitude problems. No amount of "be more careful" fixes them. What fixes them is handing the agent the information it needs, once, in a file it loads every session.
 
-That's what `better-code` builds — the coding half of a [Full Context + Lite Control](https://github.com/d-wwei/better-work-skill) framework. A 150-line project memory that tells the agent what it can't see from the code alone.
+That's what `better-code` builds — the coding half of a [Full Context + Lite Control](https://github.com/d-wwei/better-work) framework. A 150-line project memory that tells the agent what it can't see from the code alone.
 
 ## Why CLAUDE.md alone doesn't scale
 
@@ -146,11 +146,11 @@ Knowledge lives in `~/.better-work/<project-name>/` — its own git repo, separa
 
 ## The Better-Work series
 
-- **[better-work-skill](https://github.com/d-wwei/better-work-skill)** — the Lite Control layer + series entry point. Start there for the full story of how this framework was built.
+- **[better-work](https://github.com/d-wwei/better-work)** — the Lite Control layer + series entry point. Start there for the full story of how this framework was built.
 - **better-code** (this repo) — Full Context for coding
 - **[better-test](https://github.com/d-wwei/better-test)** — Full Context for testing
 
-`better-code` works standalone. Installing `better-work-skill` enables `/better-work code <cmd>` as an alias with identical behavior.
+`better-code` works standalone. Installing `better-work` enables `/better-work code <cmd>` as an alias with identical behavior.
 
 ## Limitations
 
@@ -166,6 +166,6 @@ MIT.
 
 ---
 
-Companion write-up: the full [Full Context, Lite Control](https://github.com/d-wwei/better-work-skill) story lives in the series entry-point README.
+Companion write-up: the full [Full Context, Lite Control](https://github.com/d-wwei/better-work) story lives in the series entry-point README.
 
 Questions, issues, discussion: [GitHub issues](https://github.com/d-wwei/better-code/issues).
