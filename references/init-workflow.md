@@ -86,6 +86,8 @@ git log --since="3 months ago" --grep="fix\|bug\|hotfix" --name-only --pretty=fo
    - **严格版**：涉及资金、用户数据、核心基础设施的项目
    - **标准版**：日常业务项目
    - **宽松版**：内部工具、实验项目
+
+   **无人值守 fallback**（fork 会话 / CI / 无交互通道）：默认选 **标准版**，并在 Step 6 报告中明示选择原因（"无交互通道，按默认"），让用户事后可自行切换。
 5. `code/conventions.md` — 从信号源 D 采样阅读提取
 6. `code/danger-zones.md` — 从信号源 B 高入度模块 + 信号源 A bug 热点构建
 
@@ -131,7 +133,7 @@ grep -q "^\.better-work/$" .gitignore || echo ".better-work/" >> .gitignore
 
 检测当前 agent 平台，注入**两个引用**：
 
-- Claude Code → 项目 `CLAUDE.md` 追加：
+- Claude Code → 项目 `CLAUDE.md`（若不存在则创建新文件）追加：
   ```
   @.better-work/shared/index.md
   @.better-work/code/protocol.md
