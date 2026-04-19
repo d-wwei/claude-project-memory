@@ -9,6 +9,9 @@
 ```
 若 ~/.better-work/<project>/ 不存在：
     完整初始化（执行 Step 1–6）
+若存在但目录完全为空（仅空 dir，无 shared/ 无 code/）：
+    视为"不存在"等价处理：完整初始化（执行 Step 1–6）
+    在 Step 6 报告中记录："发现空的 .better-work/<project>/ 目录（可能是之前 aborted 的 init 残留），按完整初始化处理"
 若存在但只有 shared/（例如 better-test 已先占）：
     跳过 shared/ 生成，只生成 code/ 下的文件（Step 3 中过滤）
 若 shared/ 和 code/ 都存在：
@@ -116,6 +119,38 @@ fi
 # 追加到 <project-root>/.gitignore（若未包含）
 grep -q "^\.better-work/$" .gitignore || echo ".better-work/" >> .gitignore
 ```
+
+### 知识 repo 的 .gitignore 标准模板
+
+同步 `~/.better-work/<project>/.gitignore` 的标准内容。
+
+**canonical 源**：`~/.claude/skills/better-work/references/gitignore-template.md`（若 better-work 已装）。若未装，使用内联 fallback：
+
+```gitignore
+# Progress & session state
+progress.md
+
+# Platform adapter outputs (regenerated from source)
+adapters/
+
+# Sensitive files (NEVER commit)
+*.pem
+*.key
+credentials*
+*.env
+.env.*
+
+# OS/IDE noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+```
+
+注：此 fallback 与 better-work 的 canonical `gitignore-template.md` 保持一致（v1.3.1+）。若未来 canonical 增项，此处需同步（maintainer 责任）。
+
+策略：文件不存在则创建；已存在则验证每行 template 项，缺则 append（不覆盖用户自定义行）。
 
 ### 注册到全局
 
