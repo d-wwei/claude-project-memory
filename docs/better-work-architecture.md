@@ -1,6 +1,6 @@
 # Better-Work 系列架构设计文档
 
-> 版本: v1.1 | 日期: 2026-04-18 | 状态: v1.0 已实现 / v1.1 扩展吸收
+> 版本: v1.2 | 日期: 2026-04-18 | 状态: v1.0–v1.2 全部已实现
 
 ## 1. 愿景
 
@@ -351,22 +351,30 @@ better-code 读取 known-issues.md → 知道什么在挂 → 修复
 - 跨 skill 信息流的自动化
 - 多平台 adapter 完善
 
-### 10.4 v1.2 规划（Phase G 执行中）
+### 10.4 Phase G 实现记录（v1.2）
 
-Phase G（吸收 cognitive-kernel + results-driven 约束到 better-work-skill）正在并行执行（Fork 4）。完成后发架构文档 v1.2。
+Phase G（吸收 cognitive-kernel + results-driven 约束到 better-work-skill）已完成（Fork 4 commit 281ec37）。
 
-**计划内容：**
+**交付物：**
 
-- `skills/better-work/SKILL.md` 新增 **Cognitive Layer** 章节（按需加载）：
-  - § Output Protocol — `proposing_solution` / `proposing_change` / `claiming_done` 的字段模板
+- `skills/better-work/SKILL.md` 新增 **Cognitive Layer** 章节（line 74–148，75 行）：
+  - § Output Protocol — `proposing_solution` / `proposing_change` / `claiming_done` 字段模板（6 个中英双语字段）
   - § Behavior Triggers — 8 条 IF/THEN（基线 5 条 + results-driven 3 条）
   - § Adversarial Review — 自动/建议触发条件 + spawn 子 agent 指令 + 审查 brief 模板
-- `skills/better-work/protocol.md` 重写（always-on，≤30 行）：
-  - Operating Standards 精华（4 条压缩）
+- `skills/better-work/protocol.md` 重写为 28 行 always-on：
+  - Operating Standards 精华（4 条压缩，每条 1 行 title + 1 行核心原则）
   - Cognitive Rules 5 条（claiming done 核对 / 简路径审问 / should-work 验证 / 事实标注 / 模糊措辞检测）
+  - protocol.md 为 canonical，SKILL.md 中的 Cognitive Rules 为 bit-aligned 副本
+- `skills/better-work/references/init-workflow.md` Phase 4 重写：
+  - 默认 auto-inject `protocol.md` 到 `~/.claude/CLAUDE.md`（全局）
+  - opt-out flags：`--skip-protocol` / `--protocol-scope=project`
+  - cognitive-kernel 共存策略：不阻塞、不提示，在完成报告中登记重复
 - 不新建 `subskills/cognitive-kernel.md` 和 `subskills/results-driven.md`——全部合并进 SKILL.md，减少文件结构复杂度
 
-Phase G 完成后，此段会被 v1.2 的实际实现记录替换。
+**决策确认：**
+
+- 用户明确接受"双装重复"（better-work protocol.md + 全局 cognitive-kernel 同时注入），不做兼容段
+- 撤回 Phase F 的"protocol.md 不自动注入"保守决策（README Known Debt 点 1 已标 [RESOLVED in Phase G]）
 
 ## 11. 设计决策记录
 
@@ -395,11 +403,16 @@ Phase G 完成后，此段会被 v1.2 的实际实现记录替换。
 | 新增 §8.4 测试知识版本化与反馈机制（6 verdicts） | §8.4 | Fork 2 commit 62d743a |
 | §5.1 补充 `protocol.md` 默认注入 + opt-out 说明 | §5.1 | Fork 3 commit 4505c35 |
 
-**v1.2 预告（Phase G 执行中）：**
+### v1.1 → v1.2（2026-04-18）
 
-- SKILL.md 新增 Cognitive Layer 章节（from Fork 4，执行中）
-- protocol.md 重写为 Operating Standards 精华 + Cognitive Rules 5 条
-- 详见 §10.4
+**扩展吸收来源：** Phase G（Fork 4 commit 281ec37）。
+
+| 变更 | 章节 | 来源 |
+|------|------|------|
+| SKILL.md 新增 Cognitive Layer 章节（Output Protocol / Behavior Triggers / Adversarial Review） | §10.4 | Fork 4 commit 281ec37 |
+| protocol.md 重写为 28 行 always-on（Operating Standards 精华 + Cognitive Rules 5 条） | §10.4 | Fork 4 commit 281ec37 |
+| init-workflow.md Phase 4 默认 auto-inject + `--skip-protocol` / `--protocol-scope=project` opt-out | §5.1 §10.4 | Fork 4 commit 281ec37 |
+| §10.4 从"规划"改为"实现记录" | §10.4 | 协调会话 |
 
 **未变更：**
 
